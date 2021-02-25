@@ -1,5 +1,16 @@
 export const getCacheTypePolicies = () => {
   return {
-    typePolicies: {},
+    typePolicies: {
+      Query: {
+        fields: {
+          launchesPast: {
+            keyArgs: false,
+            merge(existing = [], incoming) {
+              return [...existing, ...incoming];
+            },
+          }
+        }
+      }
+    },
   };
 };

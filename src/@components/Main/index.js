@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 
 // MUI
 import { StyledMain } from "./styles";
@@ -14,24 +14,21 @@ import useLaunchesData from "./@data/useLaunchesData";
 import Chooser from "../Chooser";
 import Selection from "../Selection";
 
-const Main = (props) => {
+const Main = () => {
   // Hooks
-  const init_load = React.useRef();
-  const main_ref = React.useRef();
-  const [selection, setSelection] = React.useState({});
-  const [show_selection, setShowSelection] = React.useState(false);
-  const [loadLaunches, { data }] = useLaunchesData(main_ref);
+  const mainRef = useRef();
+  const [selection, setSelection] = useState({});
+  const [show_selection, setShowSelection] = useState(false);
+  const [launches, { loadMore }] = useLaunchesData();
 
-  React.useEffect(() => {
-    if (!init_load.current) {
-      init_load.current = true;
-
-      loadLaunches();
+  const handleScroll = useCallback(() => {
+    if (mainRef.current.scrollHeight - mainRef.current.scrollTop === window.innerHeight) {
+      loadMore();
     }
-  }, [loadLaunches]);
+  }, [mainRef, loadMore]);
 
   return (
-    <StyledMain as={Container} ref={main_ref} onScroll={(e) => loadLaunches()}>
+    <StyledMain as={Container} ref={mainRef} onScroll={handleScroll}>
       <header>
         <Typography variant="h2">SpaceX Launches</Typography>
 
@@ -52,11 +49,11 @@ const Main = (props) => {
           <Selection selection={selection} />
         ) : (
           <Chooser
-            data={data}
+            data={launches}
             selection={selection}
             onSelected={(id) => {
               if (selection[id]) setSelection({ ...selection, [id]: null });
-              else setSelection({ ...selection, [id]: data.find((item) => item.id === id) });
+              else setSelection({ ...selection, [id]: launches.find((item) => item.id === id) });
             }}
           />
         )}

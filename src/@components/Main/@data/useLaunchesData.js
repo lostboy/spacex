@@ -1,15 +1,15 @@
-import React from "react";
+import { useCallback, useMemo } from "react";
 
 // Apollo
 import gql from "graphql-tag";
-import { useLazyQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 
 /**
  * Queries
  */
 
 const LAUNCHES = gql`
-  query($limit: Int!, $offset: Int!, $search: String) {
+  query($limit: Int! = 5, $offset: Int! = 0, $search: String) {
     launchesPast(limit: $limit, offset: $offset, find: { mission_name: $search }) {
       id
       mission_name
@@ -21,47 +21,28 @@ const LAUNCHES = gql`
   }
 `;
 
-const limit = 5;
+const useLaunchesData = () => {
+  const { data, fetchMore, ...query } = useQuery(LAUNCHES);
+  
+  const launches = useMemo(() => {
+    return data ? data.launchesPast : []
+  }, [data]);
 
-const useLaunchesData = (main_ref) => {
-  // Hooks
-  const [launches_data, setLaunchesData] = React.useState([]);
-  const offset = React.useRef(0);
-
-  const [getLaunches, { loading, error }] = useLazyQuery(LAUNCHES, {
-    onCompleted: ({ launchesPast }) => {
-      offset.current += limit;
-
-      setLaunchesData([...launches_data, ...launchesPast]);
-
-      loadLaunches();
+  const loadMore = useCallback(() => fetchMore({
+    variables: {
+      offset: launches.length,
     },
-    onError: (error) => console.error(error),
-  });
+  }), [launches, fetchMore]);
 
-  const loadLaunches = React.useCallback(() => {
-    if (main_ref.current) {
-      if (main_ref.current.scrollHeight - main_ref.current.scrollTop === window.innerHeight) {
-        if (!loading) {
-          getLaunches({
-            variables: {
-              limit,
-              offset: offset.current,
-            },
-          });
-        }
-      }
-    }
-  }, [getLaunches, loading, main_ref]);
-
-  return [
-    loadLaunches,
-    {
-      data: launches_data,
-      error,
-      loading,
-    },
-  ];
+  return useMemo(() => {
+    return [
+      launches,
+      {
+        loadMore,
+        ...query,
+      },
+    ];
+  }, [launches, loadMore]);
 };
 
 export default useLaunchesData;
